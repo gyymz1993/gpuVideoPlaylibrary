@@ -12,6 +12,7 @@ android {
         targetSdkVersion 26
         versionCode 1
         versionName "1.0.0"
+        vectorDrawables.useSupportLibrary = true
     }
 
     buildTypes {
@@ -34,8 +35,6 @@ dependencies {
     implementation project(':ucrop')
     implementation 'com.android.support:appcompat-v7:26.1.0'
     implementation 'com.android.support:recyclerview-v7:26.1.0'
-    implementation 'com.github.bumptech.glide:glide:4.2.0'
-
     /*Rx引入包*/
     implementation 'io.reactivex.rxjava2:rxandroid:2.0.1'
     /*RxAndroid*/
