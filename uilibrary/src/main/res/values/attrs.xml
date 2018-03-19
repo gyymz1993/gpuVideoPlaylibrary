@@ -1,0 +1,68 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <declare-styleable name="rtl_RecyclerTabLayout">
+        <attr name="rtl_tabIndicatorColor" format="color"/>
+        <attr name="rtl_tabIndicatorHeight" format="dimension"/>
+
+        <attr name="rtl_tabBackground" format="reference"/>
+
+        <attr name="rtl_tabTextAppearance" format="reference"/>
+        <attr name="rtl_tabSelectedTextColor" format="color"/>
+
+        <attr name="rtl_tabOnScreenLimit" format="integer"/>
+        <attr name="rtl_tabMinWidth" format="dimension"/>
+        <attr name="rtl_tabMaxWidth" format="dimension"/>
+
+        <attr name="rtl_tabPaddingStart" format="dimension"/>
+        <attr name="rtl_tabPaddingTop" format="dimension"/>
+        <attr name="rtl_tabPaddingEnd" format="dimension"/>
+        <attr name="rtl_tabPaddingBottom" format="dimension"/>
+        <attr name="rtl_tabPadding" format="dimension"/>
+
+        <attr name="rtl_scrollEnabled" format="boolean"/>
+
+    </declare-styleable>
+
+
+
+    <declare-styleable name="CouponView">
+        <attr name="cv_semicircle_gap" format="dimension|reference"/>
+        <attr name="cv_semicircle_radius" format="dimension|reference"/>
+        <attr name="cv_semicircle_color" format="color|reference"/>
+        <attr name="cv_dash_line_length" format="dimension|reference"/>
+        <attr name="cv_dash_line_gap" format="dimension|reference"/>
+        <attr name="cv_dash_line_height" format="dimension|reference"/>
+        <attr name="cv_dash_line_color" format="color|reference"/>
+        <attr name="cv_is_semicircle_top" format="boolean|reference"/>
+        <attr name="cv_is_semicircle_bottom" format="boolean|reference"/>
+        <attr name="cv_is_semicircle_left" format="boolean|reference"/>
+        <attr name="cv_is_semicircle_right" format="boolean|reference"/>
+        <attr name="cv_is_dash_line_top" format="boolean|reference"/>
+        <attr name="cv_is_dash_line_bottom" format="boolean|reference"/>
+        <attr name="cv_is_dash_line_left" format="boolean|reference"/>
+        <attr name="cv_is_dash_line_right" format="boolean|reference"/>
+        <attr name="cv_dash_line_margin_top" format="dimension|reference"/>
+        <attr name="cv_dash_line_margin_bottom" format="dimension|reference"/>
+        <attr name="cv_dash_line_margin_left" format="dimension|reference"/>
+        <attr name="cv_dash_line_margin_right" format="dimension|reference"/>
+    </declare-styleable>
+
+
+    <declare-styleable name="CompositionAvatarView">
+        <attr name="gap" format="float"/>
+        <attr name="fitType" format="enum">
+            <enum name="FIT" value="0"/>
+            <enum name="CENTER" value="1"/>
+            <enum name="START" value="2"/>
+            <enum name="END" value="3"/>
+        </attr>
+    </declare-styleable>
+
+
+    <declare-styleable name="SwipeMenuView">
+        <attr name="swipeEnable" format="boolean"/>
+        <attr name="ios" format="boolean"/>
+        <attr name="leftSwipe" format="boolean"/>
+    </declare-styleable>
+
+</resources>
