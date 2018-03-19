@@ -1,1 +1,1 @@
-include ':app', ':ucrop', ':picturelibrary'
+include ':app',':keybroadpanelswitchlib'
