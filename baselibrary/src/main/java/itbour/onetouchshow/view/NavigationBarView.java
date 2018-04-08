@@ -251,6 +251,19 @@ public class NavigationBarView extends RelativeLayout {
      *
      * @param resourceId
      */
+    public NavigationBarView setleftImageResource(int resourceId) {
+        ImageView imageView = viewFindById(R.id.iv_left);
+        if (imageView != null) {
+            imageView.setImageResource(resourceId);
+        }
+        return this;
+    }
+
+    /**
+     * 设置背景资源
+     *
+     * @param resourceId
+     */
     public NavigationBarView setRightImageResource(Drawable resourceId) {
         if (rightImg != null) {
             rightImg.setImageDrawable(resourceId);

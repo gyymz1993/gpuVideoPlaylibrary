@@ -168,7 +168,7 @@ public abstract class ABaseActivity extends BaseActivity implements NetworkState
 
     /*默认 是返回键*/
     protected NavigationBarView setTopLeftButton(int iconResId) {
-        navigationBarView.setleftImageResource(UIUtils.getDrawable(iconResId));
+        navigationBarView.setleftImageResource(iconResId);
         navigationBarView.setLetfIocnOnClick(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
