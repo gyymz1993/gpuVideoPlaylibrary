@@ -1,0 +1,48 @@
+apply plugin: 'com.android.library'
+apply plugin: 'com.novoda.bintray-release'//添加
+
+android {
+    compileSdkVersion 26
+    buildToolsVersion "26.0.2"
+    defaultConfig {
+        minSdkVersion 15
+        targetSdkVersion 26
+        versionCode 1
+        versionName "1.0"
+        testInstrumentationRunner "android.support.test.runner.AndroidJUnitRunner"
+    }
+    buildTypes {
+        release {
+            minifyEnabled false
+            proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
+        }
+    }
+
+    lintOptions {
+        abortOnError false
+    }
+    productFlavors {
+    }
+
+}
+
+dependencies {
+    implementation fileTree(include: ['*.jar'], dir: 'libs')
+    implementation 'com.android.support:appcompat-v7:26.1.0'
+    testImplementation 'junit:junit:4.12'
+    androidTestImplementation 'com.android.support.test:runner:1.0.2'
+    androidTestImplementation 'com.android.support.test.espresso:espresso-core:3.0.2'
+    implementation 'com.android.support:recyclerview-v7:26.1.0'
+    implementation 'com.github.gyymz1993:gpuimage:v1.0.1'
+}
+
+//添加
+publish {
+    userOrg ='gyymz1993'  //bintray.com用户名
+    groupId ='com.github.gyymz1993'  //jcenter上的路径
+    artifactId ='GPUVideoPlaylibrary'  //项目名称
+    publishVersion = 'v1.0.0'  //版本号
+    desc = 'this is for GPUVideoPlay'//描述，不重要
+    website = 'https://github.com/gyymz1993'//网站，最好有，不重要
+    /*gradlew clean build bintrayUpload -PbintrayUser=gyymz1993 -PbintrayKey=5034d09884878366fbd444d453ff05c290684076 -PdryRun=false*/
+}

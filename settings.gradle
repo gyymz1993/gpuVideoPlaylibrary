@@ -1,1 +1,1 @@
-include ':app', ':videotrimmerview'
+include ':app', ':gpuvideoplay'

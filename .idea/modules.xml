@@ -3,8 +3,8 @@
   <component name="ProjectModuleManager">
     <modules>
       <module fileurl="file://$PROJECT_DIR$/app/app.iml" filepath="$PROJECT_DIR$/app/app.iml" />
-      <module fileurl="file://$PROJECT_DIR$/videoTrimmerViewlibrary.iml" filepath="$PROJECT_DIR$/videoTrimmerViewlibrary.iml" />
-      <module fileurl="file://$PROJECT_DIR$/videotrimmerview/videotrimmerview.iml" filepath="$PROJECT_DIR$/videotrimmerview/videotrimmerview.iml" />
+      <module fileurl="file://$PROJECT_DIR$/gpuVideoPlaylibrary.iml" filepath="$PROJECT_DIR$/gpuVideoPlaylibrary.iml" />
+      <module fileurl="file://$PROJECT_DIR$/gpuvideoplay/gpuvideoplay.iml" filepath="$PROJECT_DIR$/gpuvideoplay/gpuvideoplay.iml" />
     </modules>
   </component>
 </project>
