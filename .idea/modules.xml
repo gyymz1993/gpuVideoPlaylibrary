@@ -2,12 +2,9 @@
 <project version="4">
   <component name="ProjectModuleManager">
     <modules>
-      <module fileurl="file://D:\Porject\baselibrary\Mylibrary.iml" filepath="D:\Porject\baselibrary\Mylibrary.iml" />
       <module fileurl="file://$PROJECT_DIR$/app/app.iml" filepath="$PROJECT_DIR$/app/app.iml" />
-      <module fileurl="file://$PROJECT_DIR$/baselibrary.iml" filepath="$PROJECT_DIR$/baselibrary.iml" />
-      <module fileurl="file://D:\Porject\baselibrary\baselibrary\baselibrary.iml" filepath="D:\Porject\baselibrary\baselibrary\baselibrary.iml" />
-      <module fileurl="file://D:\Porject\baselibrary\baselibrary.iml" filepath="D:\Porject\baselibrary\baselibrary.iml" />
-      <module fileurl="file://$PROJECT_DIR$/baselibrary/baselibrary-baselibrary.iml" filepath="$PROJECT_DIR$/baselibrary/baselibrary-baselibrary.iml" />
+      <module fileurl="file://$PROJECT_DIR$/videoTrimmerViewlibrary.iml" filepath="$PROJECT_DIR$/videoTrimmerViewlibrary.iml" />
+      <module fileurl="file://$PROJECT_DIR$/videotrimmerview/videotrimmerview.iml" filepath="$PROJECT_DIR$/videotrimmerview/videotrimmerview.iml" />
     </modules>
   </component>
 </project>
