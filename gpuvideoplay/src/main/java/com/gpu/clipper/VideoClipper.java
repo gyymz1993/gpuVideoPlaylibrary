@@ -545,7 +545,7 @@ public class VideoClipper {
         }
     }
 
-    private synchronized void release() {
+    public synchronized void release() {
         if (!videoFinish || !audioFinish || released) {
             return;
         }
