@@ -11,7 +11,6 @@ import android.media.MediaMuxer;
 import android.os.Build;
 import android.util.Log;
 
-
 import com.gup.video.GPUImageFilterTools;
 import com.gup.video.VideoInfo;
 
