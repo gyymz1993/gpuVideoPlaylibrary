@@ -94,7 +94,6 @@ import jp.co.cyberagent.android.gpuimage.GPUImageSourceOverBlendFilter;
 import jp.co.cyberagent.android.gpuimage.GPUImageSphereRefractionFilter;
 import jp.co.cyberagent.android.gpuimage.GPUImageSubtractBlendFilter;
 import jp.co.cyberagent.android.gpuimage.GPUImageSwirlFilter;
-import jp.co.cyberagent.android.gpuimage.GPUImageToneCurveFilter;
 import jp.co.cyberagent.android.gpuimage.GPUImageToonFilter;
 import jp.co.cyberagent.android.gpuimage.GPUImageTransformFilter;
 import jp.co.cyberagent.android.gpuimage.GPUImageTwoInputFilter;
@@ -352,7 +351,7 @@ public class GPUImageFilterTools {
             case HIGHLIGHT_SHADOW:
                 return new GPUImageHighlightShadowFilter(0.0f, 1.0f);
             case MONOCHROME:
-                return new GPUImageMonochromeFilter(1.0f, new float[]{0.6f, 0.45f, 0.3f, 1.0f});
+                return new GPUImageMonochromeFilter(1.0f, new float[]{0.5f, 0.5f, 0.5f, 1.0f});
             case OPACITY:
                 return new GPUImageOpacityFilter(1.0f);
             case RGB:
@@ -734,7 +733,7 @@ public class GPUImageFilterTools {
         private class MonochromeAdjuster extends Adjuster<GPUImageMonochromeFilter> {
             @Override
             public void adjust(final int percentage) {
-                getFilter().setIntensity(range(percentage, 0.0f, 1.0f));
+               // getFilter().setIntensity(range(percentage, 0.0f, 1.0f));
                 //getFilter().setColor(new float[]{0.6f, 0.45f, 0.3f, 1.0f});
             }
         }

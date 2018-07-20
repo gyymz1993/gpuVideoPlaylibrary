@@ -38,6 +38,7 @@ public class GLMediaPlayerWrapper implements VideoPlayerControl {
     public static final int PLAYER_TINY_WINDOW = 12;   // 小窗口播放器
     public AddWeaterFilterListener addWeaterFilterListener;
     FullScreenListener fullScreenListener;
+    Handler handler = new Handler();
     private VideoInfo info;
     private MediaPlayer mMediaPlayer;    //current player
     private String mPath;          //video src list
@@ -57,6 +58,8 @@ public class GLMediaPlayerWrapper implements VideoPlayerControl {
     /**
      * MediaPlayer准备好播放监听
      */
+
+
     private MediaPlayer.OnPreparedListener mOnPreparedListener = new MediaPlayer.OnPreparedListener() {
         @Override
         public void onPrepared(MediaPlayer mp) {
@@ -86,9 +89,31 @@ public class GLMediaPlayerWrapper implements VideoPlayerControl {
      */
     private MediaPlayer.OnCompletionListener mOnCompletionListener = new MediaPlayer.OnCompletionListener() {
         @Override
-        public void onCompletion(MediaPlayer mp) {
-            mCurrentState = STATE_COMPLETED; //播放完成
+        public void onCompletion(final MediaPlayer mp) {
+            // mCurrentState = STATE_COMPLETED; //播放完成
+            // updateVideoPlayerState();
+            long position = mp.getCurrentPosition();
+            long duration = mp.getDuration();
+            Log.e("TAG", "OnCompletionListener position" + position + "///duration:" + duration);
+            //重播i
+            mCurrentState = STATE_COMPLETED;
             updateVideoPlayerState();
+
+            /**
+             * 如果不是循环播放 则暂停
+             */
+            handler.postDelayed(new Runnable() {
+                @Override
+                public void run() {
+                   try {
+                       mp.pause();
+                       seekTo(0);
+                   }catch (Exception e){
+
+                   }
+                }
+            }, 0);
+
         }
     };
     /**
@@ -160,6 +185,10 @@ public class GLMediaPlayerWrapper implements VideoPlayerControl {
         String duration = metadataRetriever.extractMetadata(9);
         metadataRetriever.release();
         return duration;
+    }
+
+    public int getmCurrentState() {
+        return mCurrentState;
     }
 
     /**
@@ -289,14 +318,12 @@ public class GLMediaPlayerWrapper implements VideoPlayerControl {
             mMediaPlayer.setOnErrorListener(mOnErrorListener);
             mMediaPlayer.setOnInfoListener(mOnInfoListener);
             mMediaPlayer.setOnBufferingUpdateListener(mOnBufferingUpdateListener);
-            mMediaPlayer.setLooping(true);
+            mMediaPlayer.setLooping(false);
             //设置surface
             mMediaPlayer.setSurface(surface);
             if (mCallback != null) {
                 mCallback.onVideoChanged(info);
             }
-
-
 //            mMediaPlayer.setOnPreparedListener(new MediaPlayer.OnPreparedListener(){
 //                @RequiresApi(api = Build.VERSION_CODES.M)
 //                public void onPrepared(MediaPlayer var1) {
@@ -380,6 +407,13 @@ public class GLMediaPlayerWrapper implements VideoPlayerControl {
             mMediaPlayer.start();
             mCurrentState = mCurrentState == STATE_PAUSED ? STATE_PLAYING : STATE_BUFFERING_PLAYING;
             updateVideoPlayerState();
+        } else if (mCurrentState == STATE_COMPLETED) {
+            if (mMediaPlayer!=null){
+                mMediaPlayer.start();
+                mCurrentState = STATE_PLAYING;
+                updateVideoPlayerState();
+            }
+
         }
     }
 
@@ -452,17 +486,17 @@ public class GLMediaPlayerWrapper implements VideoPlayerControl {
     public int getCurrentProgress() {
 
 
-        Log.e("getCurrentProgress", mMediaPlayer.getCurrentPosition() + "");
-        if (mMediaPlayer.getCurrentPosition() > 5000) {
-
-            if (addWeaterFilterListener != null) {
-                addWeaterFilterListener.removerWeater();
-            }
-        } else {
-            if (addWeaterFilterListener != null) {
-                addWeaterFilterListener.addWeater();
-            }
-        }
+//        Log.e("getCurrentProgress", mMediaPlayer.getCurrentPosition() + "");
+//        if (mMediaPlayer.getCurrentPosition() > 5000) {
+//
+//            if (addWeaterFilterListener != null) {
+//                addWeaterFilterListener.removerWeater();
+//            }
+//        } else {
+//            if (addWeaterFilterListener != null) {
+//                addWeaterFilterListener.addWeater();
+//            }
+//        }
         return mMediaPlayer != null ? mMediaPlayer.getCurrentPosition() : 0;
     }
 

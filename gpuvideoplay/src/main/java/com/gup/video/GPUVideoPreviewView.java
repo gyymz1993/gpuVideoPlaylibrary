@@ -8,11 +8,9 @@ import android.os.Build;
 import android.support.annotation.RequiresApi;
 import android.util.AttributeSet;
 import android.util.Log;
-import android.view.SurfaceHolder;
 
 import jp.co.cyberagent.android.gpuimage.GPUImageFilter;
 import jp.co.cyberagent.android.gpuimage.GPUImageFilterGroup;
-import jp.co.cyberagent.android.gpuimage.BaseGPUImageRenderer;
 import jp.co.cyberagent.android.gpuimage.Rotation;
 
 public class GPUVideoPreviewView extends GLSurfaceView {
@@ -63,8 +61,8 @@ public class GPUVideoPreviewView extends GLSurfaceView {
 
     private void init(Context context) {
         Log.e("TAG", "init---------->>>> init  GPUVideoPreviewView");
+        //setBackgroundColor(Color.BLACK);
         mMeasureHelper = new MeasureHelper(this);
-
         filterGroup = new GPUImageFilterGroup();
         filterGroup.addFilter(new GPUImageExtTexFilter());
         filterGroup.addFilter(new GPUImageFilter());
@@ -87,13 +85,19 @@ public class GPUVideoPreviewView extends GLSurfaceView {
 
     public void setSourceSize(int imageWidth, int imageHeight, Rotation rotation) {
 
-        if (imageWidth > 0 && imageHeight > 0) {
-            setVideoSize(imageWidth,imageHeight,rotation);
-        }
 
-        mRenderer.setSourceSize(imageWidth, imageHeight, rotation);
-        Log.e("TAG", "init---------->>>> init  GPUVideoPreviewView" + mRenderer);
-        mRenderer.setRotation(rotation);
+        Log.e("GPUVideoPreviewView TAG", "init---------->>>> init  GPUVideoPreviewView imageWidth" + imageWidth);
+        Log.e("GPUVideoPreviewView TAG", "init---------->>>> init  GPUVideoPreviewView imageHeight" + imageHeight);
+        Log.e("GPUVideoPreviewView TAG", "init---------->>>> init  GPUVideoPreviewView rotation" + rotation.asInt());
+
+
+        if (imageWidth > 0 && imageHeight > 0) {
+            int tempWidth=imageWidth+ DensityUtils.dp2px(getContext(),10);
+            int tempHeight=imageHeight+ DensityUtils.dp2px(getContext(),10);
+            setVideoSize(tempWidth,tempHeight,rotation);
+        }
+        //mRenderer.setRotation(rotation);
+        mRenderer.setSourceSize(imageWidth, imageHeight,rotation);
 
 
 

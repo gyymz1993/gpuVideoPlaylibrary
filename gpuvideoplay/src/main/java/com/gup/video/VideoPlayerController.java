@@ -4,6 +4,7 @@ import android.content.Context;
 import android.os.Handler;
 import android.os.Message;
 import android.support.annotation.NonNull;
+import android.util.Log;
 import android.view.MotionEvent;
 import android.view.View;
 import android.widget.FrameLayout;
@@ -15,6 +16,8 @@ import android.widget.Toast;
 
 import java.util.Formatter;
 import java.util.Locale;
+import java.util.Timer;
+import java.util.TimerTask;
 
 import static com.gup.video.GLMediaPlayerWrapper.STATE_BUFFERING_PAUSED;
 
@@ -60,6 +63,15 @@ public class VideoPlayerController extends FrameLayout implements
     };
     private float startX;
     private float startY;
+    private int mCurrentState; //播放状态
+    private int mWindowState;
+    private Timer mUpdateProgressTimer;
+    private TimerTask mUpdateProgressTimerTask;
+    /**
+     * 记录拖动的时候是否是播放状态  拖动的时候保持暂停状态
+     */
+    private boolean isOnTrackingState = false;
+    private boolean isTracking = false;
 
     public VideoPlayerController(@NonNull Context context) {
         super(context);
@@ -80,6 +92,29 @@ public class VideoPlayerController extends FrameLayout implements
         int seconds = totalSeconds % 60;
         int minutes = (totalSeconds / 60) % 60;
         int hours = totalSeconds / 3600;
+        StringBuilder stringBuilder = new StringBuilder();
+        Formatter mFormatter = new Formatter(stringBuilder, Locale.getDefault());
+        if (hours > 0) {
+            return mFormatter.format("%d:%02d:%02d", hours, minutes, seconds).toString();
+        } else {
+            return mFormatter.format("%02d:%02d", minutes, seconds).toString();
+        }
+    }
+
+    /**
+     * 将毫秒数格式化为"##:##"的时间
+     *
+     * @param milliseconds 毫秒数
+     * @return ##:##
+     */
+    public static String formatTime(long milliseconds) {
+        if (milliseconds <= 0 || milliseconds >= 24 * 60 * 60 * 1000) {
+            return "00:00";
+        }
+        long totalSeconds = milliseconds / 1000;
+        long seconds = totalSeconds % 60;
+        long minutes = (totalSeconds / 60) % 60;
+        long hours = totalSeconds / 3600;
         StringBuilder stringBuilder = new StringBuilder();
         Formatter mFormatter = new Formatter(stringBuilder, Locale.getDefault());
         if (hours > 0) {
@@ -126,7 +161,7 @@ public class VideoPlayerController extends FrameLayout implements
         mReplay.setOnClickListener(this);
         mSeek.setOnSeekBarChangeListener(this);
         mRestartPause.setOnClickListener(this);
-         mFullScreen.setVisibility(GONE);
+        mFullScreen.setVisibility(GONE);
         mFullScreen.setOnClickListener(this);
         mBack.setOnClickListener(this);
         setOnTouchListener(this);
@@ -173,6 +208,9 @@ public class VideoPlayerController extends FrameLayout implements
             } else if (mVideoPlayerControl.isPaused() || mVideoPlayerControl.isBufferingPaused()) {
                 mVideoPlayerControl.restart();
             }
+            if (mVideoPlayerControl.isCompleted()) {
+                mVideoPlayerControl.restart();
+            }
         } else if (v == mFullScreen) {
             if (mVideoPlayerControl.isNormalScreen()) {
                 mVideoPlayerControl.enterFullScreen();
@@ -207,10 +245,16 @@ public class VideoPlayerController extends FrameLayout implements
         }
     }
 
+    public int getCurrentState() {
+        return mCurrentState;
+    }
+
     /**
      * 设置播放器工作状态
      */
     public void setControllerState(int playState, int windowState) {
+        mCurrentState = playState;
+        mWindowState = windowState;
         switch (playState) {
             case GLMediaPlayerWrapper.STATE_IDLE:
                 mBottom.setVisibility(GONE);
@@ -246,9 +290,23 @@ public class VideoPlayerController extends FrameLayout implements
                 mRestartPause.setImageResource(R.drawable.ic_player_start);
                 break;
             case GLMediaPlayerWrapper.STATE_COMPLETED:
-                cancelUpdateProgress();
-                mCompleted.setVisibility(VISIBLE);
-                mImage.setVisibility(VISIBLE);
+                //cancelUpdateProgress();
+                onReset();
+                // mCompleted.setVisibility(VISIBLE);
+                //mImage.setVisibility(VISIBLE);
+                //mRestartPause.setImageResource(R.drawable.ic_player_start);
+                // mLoading.setVisibility(GONE);
+                // mRestartPause.setImageResource(R.drawable.ic_player_start);
+                mCurrentState = GLMediaPlayerWrapper.STATE_PAUSED;
+                setControllerState(mCurrentState, mWindowState);
+//                post(new Runnable() {
+//                    @Override
+//                    public void run() {
+//                        long duration = mVideoPlayerControl.getDuration();
+//                        mDuration.setText(formatTime(duration));
+//                        mSeek.setProgress(100);
+//                    }
+//                });
                 break;
         }
 
@@ -260,8 +318,8 @@ public class VideoPlayerController extends FrameLayout implements
                 break;
             case GLMediaPlayerWrapper.PLAYER_NORMAL:
                 mBack.setVisibility(GONE);
-               // mFullScreen.setVisibility(VISIBLE);
-               // mFullScreen.setImageResource(R.drawable.ic_player_enlarge);
+                // mFullScreen.setVisibility(VISIBLE);
+                // mFullScreen.setImageResource(R.drawable.ic_player_enlarge);
                 break;
             case GLMediaPlayerWrapper.PLAYER_TINY_WINDOW:
                 mBack.setVisibility(GONE);
@@ -270,34 +328,113 @@ public class VideoPlayerController extends FrameLayout implements
         }
     }
 
+    protected void onReset() {
+        topBottomVisible = false;
+        mSeek.setProgress(0);
+        mSeek.setSecondaryProgress(0);
+        mPosition.setText("00:00");
+    }
+
     /**
      * 更新进度
      */
     private void startUpdateProgress() {
-        handler.sendEmptyMessageDelayed(MSG_ID, 300);
+        // handler.sendEmptyMessageDelayed(MSG_ID, 300);
+        startUpdateProgressTimer();
+    }
+
+    /**
+     * 开启更新进度的计时器。
+     */
+    protected void startUpdateProgressTimer() {
+        cancelUpdateProgressTimer();
+        if (mUpdateProgressTimer == null) {
+            mUpdateProgressTimer = new Timer();
+        }
+        if (mUpdateProgressTimerTask == null) {
+            mUpdateProgressTimerTask = new TimerTask() {
+                @Override
+                public void run() {
+                    updateProgress();
+                }
+            };
+        }
+        mUpdateProgressTimer.schedule(mUpdateProgressTimerTask, 0, 1000);
+    }
+
+    /**
+     * 取消更新进度的计时器。
+     */
+    protected void cancelUpdateProgressTimer() {
+        if (mUpdateProgressTimer != null) {
+            mUpdateProgressTimer.cancel();
+            mUpdateProgressTimer = null;
+        }
+        if (mUpdateProgressTimerTask != null) {
+            mUpdateProgressTimerTask.cancel();
+            mUpdateProgressTimerTask = null;
+        }
     }
 
     /**
      * 取消更新
      */
     private void cancelUpdateProgress() {
-        if (handler != null) {
-            handler.removeMessages(MSG_ID);
-        }
+//        if (handler != null) {
+//            handler.removeMessages(MSG_ID);
+//        }
+        cancelUpdateProgressTimer();
     }
 
     private void updateProgress() {
-        try {
-            if (mVideoPlayerControl == null) return;
-            int duration = mVideoPlayerControl.getDuration();
-            int currentPosition = mVideoPlayerControl.getCurrentProgress();
-            mSeek.setSecondaryProgress(mVideoPlayerControl.getBufferPercent());
-            mSeek.setProgress((int) (currentPosition * 1.0f / duration * 100));
-            mPosition.setText(formatTime(currentPosition));
-            mDuration.setText(formatTime(duration));
-        } catch (Exception e) {
+//        try {
+//            if (mVideoPlayerControl == null) return;
+//            int duration = mVideoPlayerControl.getDuration();
+//            int currentPosition = mVideoPlayerControl.getCurrentProgress();
+//            mSeek.setSecondaryProgress(mVideoPlayerControl.getBufferPercent());
+//            mSeek.setProgress((int) (currentPosition * 1.0f / duration * 100));
+//            mPosition.setText(formatTime(currentPosition));
+//            mDuration.setText(formatTime(duration));
+//        } catch (Exception e) {
+//
+//        }
 
-        }
+        post(new Runnable() {
+            @Override
+            public void run() {
+                long position = mVideoPlayerControl.getCurrentProgress();
+                long duration = mVideoPlayerControl.getDuration();
+                int bufferPercentage = mVideoPlayerControl.getBufferPercent();
+                mSeek.setSecondaryProgress(bufferPercentage);
+//                int progress = (int) (100f * position / duration);
+//                Log.e("TAG", "position" + position + "duration : " + duration + "////" + progress);
+//                if (!mVideoPlayerControl.isPaused()) {
+//                    //防止跳针
+//                    mSeek.setProgress(progress);
+//                } else {
+//                    //mSeek.setProgress(progress);
+//                }
+//                mPosition.setText(formatTime(position));
+//                mDuration.setText(formatTime(duration));
+
+
+                int progress;
+                int currentInt = (int) Math.ceil(position * 1.0 / 1000) * 1000;
+                // int durationInt = (int) Math.ceil((duration / 1000) * 1.0);
+                progress = (int) Math.ceil(100f * currentInt / duration);
+                Log.e("TAG", "position" + position + "///duration : " + duration + "////" + progress);
+                // 超过最大显示最大
+                if (currentInt >= duration) {
+                    progress = 100;
+                    mPosition.setText(formatTime(currentInt));
+                } else {
+                    mPosition.setText(formatTime(currentInt));
+                }
+                mDuration.setText(formatTime(duration));
+                mSeek.setProgress(progress);
+            }
+        });
+
 
     }
 
@@ -317,11 +454,6 @@ public class VideoPlayerController extends FrameLayout implements
         mVideoPlayerControl.restart();
     }
 
-    /**
-     * 记录拖动的时候是否是播放状态  拖动的时候保持暂停状态
-     */
-    private boolean isOnTrackingState = false;
-    private boolean isTracking = false;
     @Override
     public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {
         if (isTracking) {
@@ -338,6 +470,7 @@ public class VideoPlayerController extends FrameLayout implements
 
     @Override
     public void onStopTrackingTouch(SeekBar seekBar) {
+        isTracking = false;
         int progress = (int) (mVideoPlayerControl.getDuration() * seekBar.getProgress() / 100f);
         mVideoPlayerControl.seekTo(progress);
         startUpdateProgress();

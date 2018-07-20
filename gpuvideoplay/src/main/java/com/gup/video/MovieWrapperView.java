@@ -217,7 +217,7 @@ public class MovieWrapperView extends FrameLayout {
         this.removeView(mContainer);
         ViewGroup contentView = (ViewGroup) VideoPlayerUtil.scanForActivity(getContext())
                 .findViewById(android.R.id.content);
-        FrameLayout.LayoutParams params = new FrameLayout.LayoutParams(
+        LayoutParams params = new LayoutParams(
                 (int) (VideoPlayerUtil.getScreenWidth(getContext()) * 0.6),
                 (int) (VideoPlayerUtil.getScreenWidth(getContext()) * 0.6 / 16 * 9));
         contentView.addView(mContainer, params);
@@ -229,7 +229,7 @@ public class MovieWrapperView extends FrameLayout {
         ViewGroup contentView = (ViewGroup) VideoPlayerUtil.scanForActivity(getContext())
                 .findViewById(android.R.id.content);
         contentView.removeView(mContainer);
-        FrameLayout.LayoutParams params = new FrameLayout.LayoutParams(
+        LayoutParams params = new LayoutParams(
                 ViewGroup.LayoutParams.MATCH_PARENT,
                 ViewGroup.LayoutParams.MATCH_PARENT);
         this.addView(mContainer, params);

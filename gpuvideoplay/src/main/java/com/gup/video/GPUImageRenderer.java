@@ -41,7 +41,6 @@ import java.util.Queue;
 import javax.microedition.khronos.egl.EGLConfig;
 import javax.microedition.khronos.opengles.GL10;
 
-import jp.co.cyberagent.android.gpuimage.BaseGPUImageRenderer;
 import jp.co.cyberagent.android.gpuimage.GPUImage;
 import jp.co.cyberagent.android.gpuimage.GPUImageFilter;
 import jp.co.cyberagent.android.gpuimage.GPUImageNativeLibrary;
@@ -94,11 +93,11 @@ public class GPUImageRenderer implements Renderer, PreviewCallback {
         mGLCubeBuffer = ByteBuffer.allocateDirect(CUBE.length * 4)
                 .order(ByteOrder.nativeOrder())
                 .asFloatBuffer();
-       // mGLCubeBuffer.put(CUBE).position(0);
+        mGLCubeBuffer.put(CUBE).position(0);
         mGLTextureBuffer = ByteBuffer.allocateDirect(TEXTURE_NO_ROTATION.length * 4)
                 .order(ByteOrder.nativeOrder())
                 .asFloatBuffer();
-       // mGLTextureBuffer.put(TEXTURE_NO_ROTATION).position(0);
+        mGLTextureBuffer.put(TEXTURE_NO_ROTATION).position(0);
         setRotation(Rotation.NORMAL, false, false);
     }
 
@@ -282,14 +281,13 @@ public class GPUImageRenderer implements Renderer, PreviewCallback {
     public void setSourceSize(int imageWidth, int imageHeight,Rotation rotation) {
         mImageWidth = imageWidth;
         mImageHeight = imageHeight;
-//        if (rotation == Rotation.NORMAL || rotation == Rotation.ROTATION_180) {
-//            mImageWidth = imageWidth;
-//            mImageHeight = imageHeight;
-//        } else {
-//            mImageWidth = imageHeight;
-//            mImageHeight = imageWidth;
-//        }
-        // Log.e("BaseGPUImageRenderer", "mImageWidth  :" + mImageWidth + ": mImageHeight " + mImageHeight);
+        if (rotation.asInt() == 90 || rotation.asInt() == 270) {
+            int tempSpec = mImageWidth;
+            mImageWidth = imageHeight;
+            mImageHeight = tempSpec;
+        }
+        mRotation = rotation;
+        adjustImageScaling();
     }
 
 
@@ -393,7 +391,8 @@ public class GPUImageRenderer implements Renderer, PreviewCallback {
 
         float ratio1 = outputWidth / mImageWidth;
         float ratio2 = outputHeight / mImageHeight;
-        float ratioMax = Math.max(ratio1, ratio2);
+        //TODO  修改为最小  避免有花边
+        float ratioMax = Math.min(ratio1, ratio2);
         int imageWidthNew = Math.round(mImageWidth * ratioMax);
         int imageHeightNew = Math.round(mImageHeight * ratioMax);
 
