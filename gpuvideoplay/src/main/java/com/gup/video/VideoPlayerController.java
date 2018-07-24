@@ -124,6 +124,31 @@ public class VideoPlayerController extends FrameLayout implements
         }
     }
 
+    /**
+     * 将毫秒数格式化为"##:##"的时间
+     *
+     * @param milliseconds 毫秒数
+     * @return ##:##
+     */
+    public static String setmDurationformatTime(long milliseconds) {
+
+
+        if (milliseconds <= 0 || milliseconds >= 24 * 60 * 60 * 1000) {
+            return "00:00";
+        }
+        long totalSeconds = milliseconds / 1000;
+        long seconds = totalSeconds % 60;
+        long minutes = (totalSeconds / 60) % 60;
+        long hours = totalSeconds / 3600;
+        StringBuilder stringBuilder = new StringBuilder();
+        Formatter mFormatter = new Formatter(stringBuilder, Locale.getDefault());
+        if (hours > 0) {
+            return mFormatter.format("%d:%02d:%02d", hours, minutes, seconds).toString();
+        } else {
+            return mFormatter.format("%02d:%02d", minutes, seconds).toString();
+        }
+    }
+
     private void init(Context context) {
 
         inflate(context, R.layout.video_palyer_controller, this);
@@ -290,23 +315,10 @@ public class VideoPlayerController extends FrameLayout implements
                 mRestartPause.setImageResource(R.drawable.ic_player_start);
                 break;
             case GLMediaPlayerWrapper.STATE_COMPLETED:
-                //cancelUpdateProgress();
+                cancelUpdateProgress();
                 onReset();
-                // mCompleted.setVisibility(VISIBLE);
-                //mImage.setVisibility(VISIBLE);
-                //mRestartPause.setImageResource(R.drawable.ic_player_start);
-                // mLoading.setVisibility(GONE);
-                // mRestartPause.setImageResource(R.drawable.ic_player_start);
                 mCurrentState = GLMediaPlayerWrapper.STATE_PAUSED;
                 setControllerState(mCurrentState, mWindowState);
-//                post(new Runnable() {
-//                    @Override
-//                    public void run() {
-//                        long duration = mVideoPlayerControl.getDuration();
-//                        mDuration.setText(formatTime(duration));
-//                        mSeek.setProgress(100);
-//                    }
-//                });
                 break;
         }
 
@@ -405,24 +417,14 @@ public class VideoPlayerController extends FrameLayout implements
                 long position = mVideoPlayerControl.getCurrentProgress();
                 long duration = mVideoPlayerControl.getDuration();
                 int bufferPercentage = mVideoPlayerControl.getBufferPercent();
-                mSeek.setSecondaryProgress(bufferPercentage);
-//                int progress = (int) (100f * position / duration);
-//                Log.e("TAG", "position" + position + "duration : " + duration + "////" + progress);
-//                if (!mVideoPlayerControl.isPaused()) {
-//                    //防止跳针
-//                    mSeek.setProgress(progress);
-//                } else {
-//                    //mSeek.setProgress(progress);
-//                }
-//                mPosition.setText(formatTime(position));
-//                mDuration.setText(formatTime(duration));
-
-
                 int progress;
                 int currentInt = (int) Math.ceil(position * 1.0 / 1000) * 1000;
-                // int durationInt = (int) Math.ceil((duration / 1000) * 1.0);
                 progress = (int) Math.ceil(100f * currentInt / duration);
                 Log.e("TAG", "position" + position + "///duration : " + duration + "////" + progress);
+                int mStartPosition = (int) (Math.round(duration / 10.0) / 10);
+                duration = (mStartPosition * 100L);
+                mDuration.setText(setmDurationformatTime(duration));
+                mSeek.setSecondaryProgress(bufferPercentage);
                 // 超过最大显示最大
                 if (currentInt >= duration) {
                     progress = 100;
@@ -430,7 +432,6 @@ public class VideoPlayerController extends FrameLayout implements
                 } else {
                     mPosition.setText(formatTime(currentInt));
                 }
-                mDuration.setText(formatTime(duration));
                 mSeek.setProgress(progress);
             }
         });
