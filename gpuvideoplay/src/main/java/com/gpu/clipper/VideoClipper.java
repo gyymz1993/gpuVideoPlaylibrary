@@ -2,12 +2,15 @@ package com.gpu.clipper;
 
 import android.annotation.TargetApi;
 import android.content.Context;
+import android.media.AudioFormat;
+import android.media.AudioRecord;
 import android.media.MediaCodec;
 import android.media.MediaCodecInfo;
 import android.media.MediaExtractor;
 import android.media.MediaFormat;
 import android.media.MediaMetadataRetriever;
 import android.media.MediaMuxer;
+import android.media.MediaRecorder;
 import android.os.Build;
 import android.util.Log;
 
@@ -23,7 +26,9 @@ import java.util.concurrent.Executors;
 
 import jp.co.cyberagent.android.gpuimage.GPUImageFilter;
 
+import static android.content.ContentValues.TAG;
 import static android.media.MediaExtractor.SEEK_TO_PREVIOUS_SYNC;
+import static android.media.MediaFormat.KEY_BIT_RATE;
 
 /**
  * desc：用于视频裁剪的类
@@ -31,7 +36,7 @@ import static android.media.MediaExtractor.SEEK_TO_PREVIOUS_SYNC;
 @TargetApi(Build.VERSION_CODES.JELLY_BEAN_MR2)
 public class VideoClipper {
     private static ExecutorService executorService = Executors.newFixedThreadPool(4);
-    final int TIMEOUT_USEC = 0;
+    final int TIMEOUT_USEC = 2000;
     private String mInputVideoPath;
     private String mOutputVideoPath;
     private MediaCodec videoDecoder;
@@ -65,6 +70,17 @@ public class VideoClipper {
     private Object lock = new Object();
     private boolean muxStarted = false;
     private OnVideoCutFinishListener listener;
+    private ArrayList<GPUImageFilter> mFilterType = new ArrayList<>();
+    private Context mContext;
+    private int mWidth = -1;
+    /**
+     * Height of the output frames.
+     */
+    private int mHeight = -1;
+    /**
+     * The raw resource used as the input file.
+     */
+    private int mVideoOrientation = 0;
     private Runnable videoCliper = new Runnable() {
         @Override
         public void run() {
@@ -74,34 +90,48 @@ public class VideoClipper {
             mVideoExtractor.seekTo(firstVideoTime + startPosition, SEEK_TO_PREVIOUS_SYNC);
             Log.e("hero", "_____videoCliper------run");
             initVideoCodec();//暂时统一处理,为音频转换采样率做准备
-            startVideoCodec(videoDecoder, videoEncoder, mVideoExtractor, inputSurface, outputSurface, firstVideoTime, startPosition, clipDur);
-
+            try {
+                startVideoCodec(videoDecoder, videoEncoder, mVideoExtractor, inputSurface, outputSurface, firstVideoTime, startPosition, clipDur);
+            } catch (Exception e) {
+                listener.onFaile();
+                release();
+                //e.printStackTrace();
+            }
             videoFinish = true;
             release();
         }
     };
+    private AudioRecord mAudioRecord;
+    private int aSampleRate;
+    private int abits;
+    private int aChannelCount;
+    private byte[] abuffer;
     private Runnable audioCliper = new Runnable() {
         @Override
         public void run() {
             mAudioExtractor.selectTrack(audioTrackIndex);
             initAudioCodec();
-            startAudioCodec(audioDecoder, audioEncoder, mAudioExtractor, mAudioExtractor.getSampleTime(), startPosition, clipDur);
+            try {
+                startAudioCodec(audioDecoder, audioEncoder, mAudioExtractor, mAudioExtractor.getSampleTime(), startPosition, clipDur);
+            } catch (Exception e) {
+                listener.onFaile();
+                //  e.printStackTrace();
+            }
             audioFinish = true;
             release();
         }
     };
 
-    private ArrayList<GPUImageFilter> mFilterType=new ArrayList<>();
-    private Context mContext;
     //初始化音视频解码器和编码器
     public VideoClipper(Context context) {
-        this.mContext=context;
+        this.mContext = context;
         try {
             videoDecoder = MediaCodec.createDecoderByType("video/avc");
             videoEncoder = MediaCodec.createEncoderByType("video/avc");
             audioDecoder = MediaCodec.createDecoderByType("audio/mp4a-latm");
             audioEncoder = MediaCodec.createEncoderByType("audio/mp4a-latm");
         } catch (IOException e) {
+            release();
             e.printStackTrace();
         }
     }
@@ -132,13 +162,13 @@ public class VideoClipper {
     }
 
     public void setFilterType(Context context, final GPUImageFilterTools.FilterType type) {
-        if (type == null ) {
+        if (type == null) {
             mFilter = null;
             return;
         }
-        mFilter = GPUImageFilterTools.createFilterForType(context,type);
+        mFilter = GPUImageFilterTools.createFilterForType(context, type);
         mFilterType.add(mFilter);
-       // mFilter = MagicFilterFactory.initFilters(context, type);
+        // mFilter = MagicFilterFactory.initFilters(context, type);
     }
 
     /**
@@ -180,7 +210,7 @@ public class VideoClipper {
             if (format.getString(MediaFormat.KEY_MIME).startsWith("audio/")) {
                 audioTrackIndex = i;
                 audioFormat = format;
-//                muxAudioTrack = mMediaMuxer.addTrack(format);
+               // muxAudioTrack = mMediaMuxer.addTrack(format);
                 continue;
             }
         }
@@ -204,18 +234,46 @@ public class VideoClipper {
         videoRotation = Integer.parseInt(rotation);
     }
 
+    private void initAudioDevice() {
+        //音频采样率，44100是目前的标准，但是某些设备仍然支持22050,16000,11025
+        int[] sampleRates = {44100, 22050, 16000, 11025};
+        for (int sampleRate : sampleRates) {
+
+            //编码制式PCM
+            int audioForamt = AudioFormat.ENCODING_PCM_16BIT;
+            // stereo 立体声,mono单声道
+            int channelConfig = AudioFormat.CHANNEL_CONFIGURATION_STEREO;
+            int buffsize = 2 * AudioRecord.getMinBufferSize(sampleRate, channelConfig, audioForamt);
+            mAudioRecord = new AudioRecord(MediaRecorder.AudioSource.MIC,
+                    sampleRate, channelConfig, audioForamt, buffsize);
+            if (mAudioRecord.getState() != AudioRecord.STATE_INITIALIZED) {
+                Log.e(TAG, "initialized the mic failed");
+                continue;
+            }
+            aSampleRate = sampleRate;
+            abits = audioForamt;
+            aChannelCount = channelConfig == AudioFormat.CHANNEL_CONFIGURATION_STEREO ? 2 : 1;
+            abuffer = new byte[Math.min(4096, buffsize)];
+        }
+    }
+
+    private static final int ABITRATE_KBPS = 30;
     private void initAudioCodec() {
         audioDecoder.configure(audioFormat, null, null, 0);
         audioDecoder.start();
-
-        MediaFormat format = MediaFormat.createAudioFormat("audio/mp4a-latm", 44100, /*channelCount*/2);//这里一定要注意声道的问题
-        format.setInteger(MediaFormat.KEY_BIT_RATE, 128000);//比特率
-        format.setInteger(MediaFormat.KEY_AAC_PROFILE, MediaCodecInfo.CodecProfileLevel.AACObjectLC);
-        audioEncoder.configure(format, null, null, MediaCodec.CONFIGURE_FLAG_ENCODE);
+        //初始化编码器
+        MediaFormat encodeFormat = MediaFormat.createAudioFormat("audio/mp4a-latm", 44100, 1);//mime type 采样率 声道数
+        encodeFormat.setInteger(MediaFormat.KEY_BIT_RATE, 3000000);//比特率
+        encodeFormat.setInteger(MediaFormat.KEY_AAC_PROFILE, MediaCodecInfo.CodecProfileLevel.AACObjectLC);
+        encodeFormat.setInteger(MediaFormat.KEY_MAX_INPUT_SIZE, 500 * 1024);
+       // MediaFormat format = MediaFormat.createAudioFormat("audio/mp4a-latm", 44100, /*channelCount*/2);//这里一定要注意声道的问题
+        //format.setInteger(KEY_BIT_RATE, 128000);//比特率
+       // format.setInteger(MediaFormat.KEY_AAC_PROFILE, MediaCodecInfo.CodecProfileLevel.AACObjectLC);
+        audioEncoder.configure(encodeFormat, null, null, MediaCodec.CONFIGURE_FLAG_ENCODE);
         audioEncoder.start();
     }
 
-    private void startAudioCodec(MediaCodec decoder, MediaCodec encoder, MediaExtractor extractor, long firstSampleTime, long startPosition, long duration) {
+    private void startAudioCodec(MediaCodec decoder, MediaCodec encoder, MediaExtractor extractor, long firstSampleTime, long startPosition, long duration) throws Exception {
         ByteBuffer[] decoderInputBuffers = decoder.getInputBuffers();
         ByteBuffer[] decoderOutputBuffers = decoder.getOutputBuffers();
         ByteBuffer[] encoderInputBuffers = encoder.getInputBuffers();
@@ -270,7 +328,6 @@ public class VideoClipper {
                         } else {
                             decoderOutputBuffer = decoderOutputBuffers[index];
                         }
-
                         int encodeInputIndex = encoder.dequeueInputBuffer(TIMEOUT_USEC);
                         if (encodeInputIndex >= 0) {
                             ByteBuffer encoderInputBuffer = encoderInputBuffers[encodeInputIndex];
@@ -295,14 +352,13 @@ public class VideoClipper {
                                 encoderInputBuffer.put(decoderOutputBuffer);
                                 encoder.queueInputBuffer(encodeInputIndex, info.offset, info.size, info.presentationTimeUs, 0);
                                 encodeinput++;
-                                System.out.println("videoCliper audio encodeInput" + encodeinput + " dataSize" + info.size + " sampeTime" + info.presentationTimeUs);
+                                Log.e("TAG","videoCliper audio encodeInput" + encodeinput + " dataSize" + info.size + " sampeTime" + info.presentationTimeUs);
                             }
                         }
                     }
                     if (endOfStream) {
                         int encodeInputIndex = encoder.dequeueInputBuffer(TIMEOUT_USEC);
                         encoder.queueInputBuffer(encodeInputIndex, 0, 0, 0, MediaCodec.BUFFER_FLAG_END_OF_STREAM);
-                        System.out.println("videoCliper audio encodeInput end");
                         decodeDone = true;
                     }
                     decoder.releaseOutputBuffer(index, false);
@@ -361,11 +417,7 @@ public class VideoClipper {
             }
         }
     }
-    private int mWidth = -1;
-    /** Height of the output frames. */
-    private int mHeight = -1;
-    /** The raw resource used as the input file. */
-    private int mVideoOrientation = 0;
+
     private void initVideoCodec() {
         //不对视频进行压缩
         VideoInfo info = new VideoInfo();
@@ -381,7 +433,7 @@ public class VideoClipper {
         }
         //设置视频的编码参数
 
-        mediaFormat.setInteger(MediaFormat.KEY_BIT_RATE, 3000000);
+        mediaFormat.setInteger(KEY_BIT_RATE, 3000000);
         mediaFormat.setInteger(MediaFormat.KEY_FRAME_RATE, 30);
         mediaFormat.setInteger(MediaFormat.KEY_COLOR_FORMAT, MediaCodecInfo.CodecCapabilities.COLOR_FormatSurface);
         mediaFormat.setInteger(MediaFormat.KEY_I_FRAME_INTERVAL, 1);
@@ -403,8 +455,8 @@ public class VideoClipper {
 
         int width = mediaFormat.getInteger(MediaFormat.KEY_WIDTH);
         int height = mediaFormat.getInteger(MediaFormat.KEY_HEIGHT);
-       // outputSurface = new OutputSurface(mContext,info);
-        outputSurface = new OutputSurfaceWithFilter(mContext,  mFilterType, width, height, mVideoOrientation);
+        // outputSurface = new OutputSurface(mContext,info);
+        outputSurface = new OutputSurfaceWithFilter(mContext, mFilterType, width, height, mVideoOrientation);
 //        if (mFilter != null) {
 //            Log.e("hero", "---gpuFilter 不为null哟----设置进outputSurface里面");
 //            outputSurface.addGpuFilter(mFilter);
@@ -425,7 +477,7 @@ public class VideoClipper {
      * @param startPosition   微秒级
      * @param duration        微秒级
      */
-    private void startVideoCodec(MediaCodec decoder, MediaCodec encoder, MediaExtractor extractor, InputSurface inputSurface, OutputSurfaceWithFilter outputSurface, long firstSampleTime, long startPosition, long duration) {
+    private void startVideoCodec(MediaCodec decoder, MediaCodec encoder, MediaExtractor extractor, InputSurface inputSurface, OutputSurfaceWithFilter outputSurface, long firstSampleTime, long startPosition, long duration) throws Exception {
         ByteBuffer[] decoderInputBuffers = decoder.getInputBuffers();
         ByteBuffer[] encoderOutputBuffers = encoder.getOutputBuffers();
         MediaCodec.BufferInfo info = new MediaCodec.BufferInfo();
@@ -577,5 +629,7 @@ public class VideoClipper {
 
     public interface OnVideoCutFinishListener {
         void onFinish();
+
+        void onFaile();
     }
 }

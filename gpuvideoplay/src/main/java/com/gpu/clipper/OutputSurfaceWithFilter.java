@@ -281,13 +281,13 @@ class OutputSurfaceWithFilter implements SurfaceTexture.OnFrameAvailableListener
                     // Wait for onFrameAvailable() to signal us.  Use a timeout to avoid
                     // stalling the test if it doesn't arrive.
                     mFrameSyncObject.wait(TIMEOUT_MS);
-                    if (!mFrameAvailable) {
-                        // TODO: if "spurious wakeup", continue while loop
-                        throw new RuntimeException("Surface frame wait timed out");
-                    }
+//                    if (!mFrameAvailable) {
+//                        // TODO: if "spurious wakeup", continue while loop
+//                        throw new RuntimeException("Surface frame wait timed out");
+//                    }
                 } catch (InterruptedException ie) {
                     // shouldn't happen
-                    throw new RuntimeException(ie);
+                  //  throw new RuntimeException(ie);
                 }
             }
             mFrameAvailable = false;

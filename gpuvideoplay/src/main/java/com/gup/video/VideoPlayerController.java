@@ -4,7 +4,6 @@ import android.content.Context;
 import android.os.Handler;
 import android.os.Message;
 import android.support.annotation.NonNull;
-import android.util.Log;
 import android.view.MotionEvent;
 import android.view.View;
 import android.widget.FrameLayout;
@@ -202,10 +201,6 @@ public class VideoPlayerController extends FrameLayout implements
 
     public void setImage(String url) {
         mUrl = url;
-//        Glide.with(mContext)
-//                .load(url)
-//                .placeholder(R.drawable.img_default)
-//                .into(mImage);
     }
 
     @Override
@@ -233,7 +228,8 @@ public class VideoPlayerController extends FrameLayout implements
             } else if (mVideoPlayerControl.isPaused() || mVideoPlayerControl.isBufferingPaused()) {
                 mVideoPlayerControl.restart();
             }
-            if (mVideoPlayerControl.isCompleted()) {
+            if (mVideoPlayerControl.isCompleted() || mVideoPlayerControl.isIdle()) {
+                // mVideoPlayerControl.release();
                 mVideoPlayerControl.restart();
             }
         } else if (v == mFullScreen) {
@@ -320,6 +316,11 @@ public class VideoPlayerController extends FrameLayout implements
                 mCurrentState = GLMediaPlayerWrapper.STATE_PAUSED;
                 setControllerState(mCurrentState, mWindowState);
                 break;
+            case GLMediaPlayerWrapper.COMPLETED_STATE_PLAYING:
+                startUpdateProgress();
+                mLoading.setVisibility(GONE);
+                mRestartPause.setImageResource(R.drawable.ic_player_pause);
+                break;
         }
 
         switch (windowState) {
@@ -338,6 +339,11 @@ public class VideoPlayerController extends FrameLayout implements
                 mFullScreen.setVisibility(GONE);
                 break;
         }
+    }
+
+
+    public void startUpdateVideoPlayerProgress() {
+        startUpdateProgress();
     }
 
     protected void onReset() {
@@ -399,17 +405,6 @@ public class VideoPlayerController extends FrameLayout implements
     }
 
     private void updateProgress() {
-//        try {
-//            if (mVideoPlayerControl == null) return;
-//            int duration = mVideoPlayerControl.getDuration();
-//            int currentPosition = mVideoPlayerControl.getCurrentProgress();
-//            mSeek.setSecondaryProgress(mVideoPlayerControl.getBufferPercent());
-//            mSeek.setProgress((int) (currentPosition * 1.0f / duration * 100));
-//            mPosition.setText(formatTime(currentPosition));
-//            mDuration.setText(formatTime(duration));
-//        } catch (Exception e) {
-//
-//        }
 
         post(new Runnable() {
             @Override
@@ -420,9 +415,9 @@ public class VideoPlayerController extends FrameLayout implements
                 int progress;
                 int currentInt = (int) Math.ceil(position * 1.0 / 1000) * 1000;
                 progress = (int) Math.ceil(100f * currentInt / duration);
-                Log.e("TAG", "position" + position + "///duration : " + duration + "////" + progress);
-                int mStartPosition = (int) (Math.round(duration / 10.0) / 10);
-                duration = (mStartPosition * 100L);
+
+                int currentDuration = (int) (Math.round(duration / 10.0 / 10.0) / 10);
+                duration = (currentDuration * 1000L);
                 mDuration.setText(setmDurationformatTime(duration));
                 mSeek.setSecondaryProgress(bufferPercentage);
                 // 超过最大显示最大

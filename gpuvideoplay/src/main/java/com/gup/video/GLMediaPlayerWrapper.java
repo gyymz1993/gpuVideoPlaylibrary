@@ -7,7 +7,6 @@ import android.media.MediaMetadataRetriever;
 import android.media.MediaPlayer;
 import android.net.Uri;
 import android.os.Handler;
-import android.util.Log;
 import android.view.Surface;
 import android.widget.FrameLayout;
 
@@ -24,6 +23,10 @@ public class GLMediaPlayerWrapper implements VideoPlayerControl {
     public static final int STATE_PREPARED = 2;        // 播放准备就绪
     public static final int STATE_PLAYING = 3;         // 正在播放
     public static final int STATE_PAUSED = 4;          // 暂停播放
+
+    //播放完成再次播放
+    public static final int COMPLETED_STATE_PLAYING = 8;          // 暂停播放
+
     /**
      * 正在缓冲(播放器正在播放时，缓冲区数据不足，进行缓冲，缓冲区数据足够后恢复播放)
      **/
@@ -36,7 +39,6 @@ public class GLMediaPlayerWrapper implements VideoPlayerControl {
     public static final int PLAYER_NORMAL = 10;        // 普通播放器
     public static final int PLAYER_FULL_SCREEN = 11;   // 全屏播放器
     public static final int PLAYER_TINY_WINDOW = 12;   // 小窗口播放器
-    public AddWeaterFilterListener addWeaterFilterListener;
     FullScreenListener fullScreenListener;
     Handler handler = new Handler();
     private VideoInfo info;
@@ -94,23 +96,23 @@ public class GLMediaPlayerWrapper implements VideoPlayerControl {
             // updateVideoPlayerState();
             long position = mp.getCurrentPosition();
             long duration = mp.getDuration();
-            Log.e("TAG", "OnCompletionListener position" + position + "///duration:" + duration);
             //重播i
             mCurrentState = STATE_COMPLETED;
             updateVideoPlayerState();
-
+            //mp.reset();
             /**
              * 如果不是循环播放 则暂停
              */
             handler.postDelayed(new Runnable() {
                 @Override
                 public void run() {
-                   try {
-                       mp.pause();
-                       seekTo(0);
-                   }catch (Exception e){
+                    try {
+                        mp.pause();
+                        seekTo(0);
 
-                   }
+                    } catch (Exception e) {
+
+                    }
                 }
             }, 0);
 
@@ -324,42 +326,9 @@ public class GLMediaPlayerWrapper implements VideoPlayerControl {
             if (mCallback != null) {
                 mCallback.onVideoChanged(info);
             }
-//            mMediaPlayer.setOnPreparedListener(new MediaPlayer.OnPreparedListener(){
-//                @RequiresApi(api = Build.VERSION_CODES.M)
-//                public void onPrepared(MediaPlayer var1) {
-//                    PlaybackParams params = null;
-//                    params = mMediaPlayer.getPlaybackParams();
-//                    params.setSpeed(5.0f);
-//                    mMediaPlayer.setPlaybackParams(params);
-//                }
-//            });
         }
-
-//        mMediaPlayer = new MediaPlayer();
-//        mMediaPlayer.setAudioStreamType(AudioManager.STREAM_MUSIC);
-//        mMediaPlayer.setScreenOnWhilePlaying(true);  //在播放时屏幕一直开启着
-//        mMediaPlayer.setOnPreparedListener(mOnPreparedListener);
-//        mMediaPlayer.setOnVideoSizeChangedListener(mOnVideoSizeChangeListener);
-//        mMediaPlayer.setOnCompletionListener(mOnCompletionListener);
-//        mMediaPlayer.setOnErrorListener(mOnErrorListener);
-//        mMediaPlayer.setOnInfoListener(mOnInfoListener);
-//        mMediaPlayer.setOnBufferingUpdateListener(mOnBufferingUpdateListener);
-//        mMediaPlayer.setDataSource(mPath);
-//        mMediaPlayer.setLooping(true);
-//        // 把视频输出到SurfaceView上
-//        //mCurMediaPlayer.setDisplay(mSurfaceHolder);
-//        mMediaPlayer.prepare();
-
     }
 
-
-//    public void start() {
-//        mMediaPlayer.setSurface(surface);
-//        mMediaPlayer.start();
-//        if (mCallback != null) {
-//            mCallback.onVideoChanged(info);
-//        }
-//    }
 
     /**
      * 让mediaPlayer播放
@@ -408,9 +377,10 @@ public class GLMediaPlayerWrapper implements VideoPlayerControl {
             mCurrentState = mCurrentState == STATE_PAUSED ? STATE_PLAYING : STATE_BUFFERING_PLAYING;
             updateVideoPlayerState();
         } else if (mCurrentState == STATE_COMPLETED) {
-            if (mMediaPlayer!=null){
+            if (mMediaPlayer != null) {
                 mMediaPlayer.start();
                 mCurrentState = STATE_PLAYING;
+                startUpdateVideoPlayerProgress();
                 updateVideoPlayerState();
             }
 
@@ -430,6 +400,10 @@ public class GLMediaPlayerWrapper implements VideoPlayerControl {
             surface.release();
             surface = null;
         }
+        if (mController != null) {
+            mController.reset();
+        }
+        mCurrentState = STATE_IDLE;
     }
 
     @Override
@@ -484,19 +458,6 @@ public class GLMediaPlayerWrapper implements VideoPlayerControl {
 
     @Override
     public int getCurrentProgress() {
-
-
-//        Log.e("getCurrentProgress", mMediaPlayer.getCurrentPosition() + "");
-//        if (mMediaPlayer.getCurrentPosition() > 5000) {
-//
-//            if (addWeaterFilterListener != null) {
-//                addWeaterFilterListener.removerWeater();
-//            }
-//        } else {
-//            if (addWeaterFilterListener != null) {
-//                addWeaterFilterListener.addWeater();
-//            }
-//        }
         return mMediaPlayer != null ? mMediaPlayer.getCurrentPosition() : 0;
     }
 
@@ -560,6 +521,9 @@ public class GLMediaPlayerWrapper implements VideoPlayerControl {
     public void updateVideoPlayerState() {
         mController.setControllerState(mCurrentState, mWindowState);
     }
+    public void  startUpdateVideoPlayerProgress() {
+        mController.startUpdateVideoPlayerProgress();
+    }
 
     @Override
     public void enterTinyScreen() {
@@ -580,9 +544,6 @@ public class GLMediaPlayerWrapper implements VideoPlayerControl {
         return false;
     }
 
-    public void setAddWeaterFilterListener(AddWeaterFilterListener addWeaterFilterListener) {
-        this.addWeaterFilterListener = addWeaterFilterListener;
-    }
 
     public interface FullScreenListener {
         /**
@@ -602,11 +563,5 @@ public class GLMediaPlayerWrapper implements VideoPlayerControl {
 
     public interface IMediaCallback {
         void onVideoChanged(VideoInfo info);
-    }
-
-    public interface AddWeaterFilterListener {
-        void addWeater();
-
-        void removerWeater();
     }
 }
